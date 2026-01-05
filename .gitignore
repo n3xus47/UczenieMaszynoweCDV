@@ -1,0 +1,46 @@
+# --- Python - pliki systemowe i tymczasowe ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Jupyter Notebooks ---
+# To folder, który tworzy się automatycznie przy używaniu notebooków
+.ipynb_checkpoints
+
+# --- Środowiska wirtualne ---
+# Nie chcemy wrzucać tysięcy plików bibliotek na GitHuba
+venv/
+env/
+.env
+.venv/
+
+# --- Dane ---
+# Pliki z danymi są często duże i nie powinny być w repozytorium kodu.
+# Lepiej trzymać je w folderze 'data', który tutaj ignorujemy,
+# albo ignorować konkretne rozszerzenia.
+data/
+*.csv
+*.xlsx
+*.json
+*.zip
+*.tar.gz
+
+# --- Wyniki działania modeli ---
+# Zapisane modele (pickle, joblib) są binarne i duże
+*.pkl
+*.joblib
+*.h5
+*.pt
+
+# --- Logi i raporty tymczasowe ---
+*.log
+plots/
+
+# --- Ustawienia IDE (Edytorów) ---
+# Ustawienia twojego prywatnego edytora nie interesują innych
+.vscode/
+.idea/
+
+# --- Pliki systemowe (Mac/Windows) ---
+.DS_Store
+Thumbs.db
