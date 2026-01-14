@@ -257,10 +257,13 @@ class DataAnalyzer:
         """
         Analiza korelacji
         
+        Automatycznie obsługuje kolumny kategoryczne - koduje je jeśli target jest kategoryczny.
+        Jeśli target nie jest numeryczny, automatycznie go koduje.
+        
         Parameters:
         -----------
         df : pd.DataFrame
-            DataFrame do analizy
+            DataFrame do analizy (może zawierać kolumny kategoryczne)
         target : str
             Nazwa kolumny docelowej
             
@@ -269,19 +272,27 @@ class DataAnalyzer:
         pd.DataFrame
             Macierz korelacji lub korelacje z targetem
         """
-        # Wybierz tylko kolumny numeryczne dla korelacji
-        numeric_df = df.select_dtypes(include=[np.number])
+        df_processed = df.copy()
         
-        if target and target in df.columns:
-            # Sprawdź czy target jest numeryczny
-            if target in numeric_df.columns:
-                correlations = numeric_df.corr()[target].sort_values(ascending=False)
-                return correlations
-            else:
-                # Jeśli target nie jest numeryczny, zwróć korelacje wszystkich numerycznych zmiennych
-                print(f"Uwaga: Kolumna '{target}' nie jest numeryczna. Zwracam korelacje wszystkich zmiennych numerycznych.")
-                return numeric_df.corr()
+        # Wybierz tylko kolumny numeryczne
+        numeric_df = df_processed.select_dtypes(include=[np.number])
+        
+        # Jeśli target jest podany i nie jest numeryczny, zakoduj go
+        if target and target in df_processed.columns:
+            if target not in numeric_df.columns:
+                # Target jest kategoryczny - zakoduj go
+                from sklearn.preprocessing import LabelEncoder
+                le = LabelEncoder()
+                df_processed[target] = le.fit_transform(df_processed[target].astype(str))
+                # Ponownie wybierz numeryczne (teraz target jest numeryczny)
+                numeric_df = df_processed.select_dtypes(include=[np.number])
+        
+        # Jeśli target jest podany, zwróć korelacje z targetem
+        if target and target in numeric_df.columns:
+            correlations = numeric_df.corr()[target].sort_values(ascending=False)
+            return correlations
         else:
+            # Zwróć pełną macierz korelacji tylko dla kolumn numerycznych
             return numeric_df.corr()
     
     def visualize_distributions(self, df: pd.DataFrame, columns: list = None, figsize: tuple = (15, 10)):
@@ -503,7 +514,8 @@ class ModelTrainer:
         self.models = {}
         self.results = {}
     
-    def train_model(self, X_train, y_train, model_type: str, **kwargs):
+    def train_model(self, X_train, y_train, model_type: str, 
+                   handle_imbalance: bool = True, **kwargs):
         """
         Trenuje model
         
@@ -515,6 +527,8 @@ class ModelTrainer:
             Zmienna docelowa treningowa
         model_type : str
             Typ modelu ('logistic', 'random_forest', 'svm', 'xgboost')
+        handle_imbalance : bool
+            Czy automatycznie obsłużyć niezbalansowanie klas (class_weight='balanced')
         **kwargs
             Dodatkowe parametry modelu
             
@@ -523,6 +537,21 @@ class ModelTrainer:
         model
             Wytrenowany model
         """
+        # Sprawdź balans klas jeśli handle_imbalance=True
+        if handle_imbalance:
+            from collections import Counter
+            class_counts = Counter(y_train)
+            if len(class_counts) == 2:
+                # Sprawdź czy klasy są niezbalansowane (różnica > 20%)
+                counts = list(class_counts.values())
+                imbalance_ratio = min(counts) / max(counts)
+                if imbalance_ratio < 0.8:  # Jeśli jedna klasa ma <80% drugiej
+                    print(f"Wykryto niezbalansowanie klas: {class_counts}")
+                    print("Stosowanie class_weight='balanced'")
+                    # Dodaj class_weight='balanced' jeśli nie jest już w kwargs
+                    if 'class_weight' not in kwargs:
+                        kwargs['class_weight'] = 'balanced'
+        
         if model_type == 'logistic':
             model = LogisticRegression(random_state=42, max_iter=1000, **kwargs)
         elif model_type == 'random_forest':
@@ -532,6 +561,15 @@ class ModelTrainer:
         elif model_type == 'xgboost':
             try:
                 import xgboost as xgb
+                # XGBoost używa scale_pos_weight zamiast class_weight
+                if handle_imbalance and 'scale_pos_weight' not in kwargs:
+                    from collections import Counter
+                    class_counts = Counter(y_train)
+                    if len(class_counts) == 2:
+                        counts = list(class_counts.values())
+                        scale_pos_weight = counts[0] / counts[1]  # negatywna / pozytywna
+                        kwargs['scale_pos_weight'] = scale_pos_weight
+                        print(f"XGBoost: scale_pos_weight={scale_pos_weight:.2f}")
                 model = xgb.XGBClassifier(random_state=42, **kwargs)
             except ImportError:
                 print("XGBoost nie jest zainstalowany. Używam Random Forest zamiast tego.")
@@ -624,7 +662,8 @@ class HyperparameterTuner:
         self.best_scores = {}
     
     def grid_search(self, model, param_grid: dict, X_train, y_train, 
-                   cv: int = 5, scoring: str = 'f1', n_jobs: int = -1):
+                   cv: int = 5, scoring: str = 'f1', n_jobs: int = -1,
+                   handle_imbalance: bool = True):
         """
         Grid Search dla optymalizacji hiperparametrów z użyciem Pipeline
         
@@ -646,15 +685,32 @@ class HyperparameterTuner:
         cv : int
             Liczba foldów cross-validation
         scoring : str
-            Metryka do optymalizacji
+            Metryka do optymalizacji (domyślnie 'f1' - lepsze dla niezbalansowanych klas)
         n_jobs : int
             Liczba równoległych zadań
+        handle_imbalance : bool
+            Czy automatycznie dodać class_weight='balanced' do modelu
             
         Returns:
         --------
         Pipeline
             Najlepszy Pipeline (scaler + model)
         """
+        # Sprawdź balans klas i dodaj class_weight jeśli potrzebne
+        if handle_imbalance:
+            from collections import Counter
+            class_counts = Counter(y_train)
+            if len(class_counts) == 2:
+                counts = list(class_counts.values())
+                imbalance_ratio = min(counts) / max(counts)
+                if imbalance_ratio < 0.8:
+                    # Dodaj class_weight='balanced' jeśli nie ma w param_grid
+                    if 'model__class_weight' not in param_grid:
+                        # Ustaw domyślnie 'balanced' dla modelu
+                        if hasattr(model, 'set_params'):
+                            model.set_params(class_weight='balanced')
+                        print("Dodano class_weight='balanced' do modelu w Pipeline")
+        
         # Tworzenie Pipeline ze StandardScaler i modelem
         pipeline = Pipeline([
             ('scaler', StandardScaler()),
