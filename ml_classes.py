@@ -267,13 +267,22 @@ class DataAnalyzer:
         Returns:
         --------
         pd.DataFrame
-            Macierz korelacji
+            Macierz korelacji lub korelacje z targetem
         """
+        # Wybierz tylko kolumny numeryczne dla korelacji
+        numeric_df = df.select_dtypes(include=[np.number])
+        
         if target and target in df.columns:
-            correlations = df.corr()[target].sort_values(ascending=False)
-            return correlations
+            # Sprawdź czy target jest numeryczny
+            if target in numeric_df.columns:
+                correlations = numeric_df.corr()[target].sort_values(ascending=False)
+                return correlations
+            else:
+                # Jeśli target nie jest numeryczny, zwróć korelacje wszystkich numerycznych zmiennych
+                print(f"Uwaga: Kolumna '{target}' nie jest numeryczna. Zwracam korelacje wszystkich zmiennych numerycznych.")
+                return numeric_df.corr()
         else:
-            return df.corr()
+            return numeric_df.corr()
     
     def visualize_distributions(self, df: pd.DataFrame, columns: list = None, figsize: tuple = (15, 10)):
         """
