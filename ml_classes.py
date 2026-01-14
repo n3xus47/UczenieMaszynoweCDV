@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -536,14 +537,14 @@ class ModelTrainer:
     
     def evaluate_model(self, model, X_test, y_test) -> dict:
         """
-        Ewaluuje model
+        Ewaluuje model (obsługuje zarówno zwykłe modele jak i Pipeline)
         
         Parameters:
         -----------
-        model : model
-            Model do ewaluacji
+        model : model lub Pipeline
+            Model do ewaluacji (może być Pipeline z sklearn)
         X_test : array-like
-            Cechy testowe
+            Cechy testowe (jeśli model to Pipeline, dane powinny być przed skalowaniem)
         y_test : array-like
             Zmienna docelowa testowa
             
@@ -552,8 +553,17 @@ class ModelTrainer:
         dict
             Słownik z metrykami
         """
+        # Pipeline automatycznie zastosuje skalowanie podczas predict
         y_pred = model.predict(X_test)
-        y_pred_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, 'predict_proba') else None
+        
+        # Sprawdź czy model ma predict_proba (obsługuje Pipeline)
+        if hasattr(model, 'predict_proba'):
+            y_pred_proba = model.predict_proba(X_test)[:, 1]
+        elif hasattr(model, 'named_steps') and hasattr(model.named_steps['model'], 'predict_proba'):
+            # Pipeline z modelem mającym predict_proba
+            y_pred_proba = model.predict_proba(X_test)[:, 1]
+        else:
+            y_pred_proba = None
         
         metrics = {
             'accuracy': accuracy_score(y_test, y_pred),
@@ -607,16 +617,21 @@ class HyperparameterTuner:
     def grid_search(self, model, param_grid: dict, X_train, y_train, 
                    cv: int = 5, scoring: str = 'f1', n_jobs: int = -1):
         """
-        Grid Search dla optymalizacji hiperparametrów
+        Grid Search dla optymalizacji hiperparametrów z użyciem Pipeline
+        
+        Tworzy Pipeline składający się ze StandardScaler i modelu, dzięki czemu
+        skalowanie odbywa się osobno dla każdego foldu walidacji krzyżowej
+        (uniknięcie data leakage).
         
         Parameters:
         -----------
         model : model
             Model do optymalizacji
         param_grid : dict
-            Siatka parametrów
+            Siatka parametrów (musi używać prefiksu 'model__' dla parametrów modelu)
+            Przykład: {'model__n_estimators': [100, 200], 'model__max_depth': [10, 20]}
         X_train : array-like
-            Cechy treningowe
+            Cechy treningowe (przed skalowaniem - surowe dane po feature engineering)
         y_train : array-like
             Zmienna docelowa treningowa
         cv : int
@@ -628,11 +643,17 @@ class HyperparameterTuner:
             
         Returns:
         --------
-        model
-            Najlepszy model
+        Pipeline
+            Najlepszy Pipeline (scaler + model)
         """
+        # Tworzenie Pipeline ze StandardScaler i modelem
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            ('model', model)
+        ])
+        
         grid_search = GridSearchCV(
-            model, 
+            pipeline, 
             param_grid, 
             cv=cv, 
             scoring=scoring, 
@@ -653,16 +674,21 @@ class HyperparameterTuner:
     def random_search(self, model, param_distributions: dict, X_train, y_train,
                      n_iter: int = 50, cv: int = 5, scoring: str = 'f1', n_jobs: int = -1):
         """
-        Random Search dla optymalizacji hiperparametrów
+        Random Search dla optymalizacji hiperparametrów z użyciem Pipeline
+        
+        Tworzy Pipeline składający się ze StandardScaler i modelu, dzięki czemu
+        skalowanie odbywa się osobno dla każdego foldu walidacji krzyżowej
+        (uniknięcie data leakage).
         
         Parameters:
         -----------
         model : model
             Model do optymalizacji
         param_distributions : dict
-            Rozkłady parametrów
+            Rozkłady parametrów (musi używać prefiksu 'model__' dla parametrów modelu)
+            Przykład: {'model__n_estimators': [100, 200], 'model__max_depth': [10, 20]}
         X_train : array-like
-            Cechy treningowe
+            Cechy treningowe (przed skalowaniem - surowe dane po feature engineering)
         y_train : array-like
             Zmienna docelowa treningowa
         n_iter : int
@@ -676,11 +702,17 @@ class HyperparameterTuner:
             
         Returns:
         --------
-        model
-            Najlepszy model
+        Pipeline
+            Najlepszy Pipeline (scaler + model)
         """
+        # Tworzenie Pipeline ze StandardScaler i modelem
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            ('model', model)
+        ])
+        
         random_search = RandomizedSearchCV(
-            model,
+            pipeline,
             param_distributions,
             n_iter=n_iter,
             cv=cv,
