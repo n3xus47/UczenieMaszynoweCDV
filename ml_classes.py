@@ -295,7 +295,7 @@ class DataAnalyzer:
             # Zwróć pełną macierz korelacji tylko dla kolumn numerycznych
             return numeric_df.corr()
     
-    def visualize_distributions(self, df: pd.DataFrame, columns: list = None, figsize: tuple = (15, 10)):
+    def visualize_distributions(self, df: pd.DataFrame, columns: list = None, figsize: tuple = (15, 10), metadata: dict = None):
         """
         Wizualizuje rozkłady zmiennych numerycznych
         
@@ -307,6 +307,8 @@ class DataAnalyzer:
             Lista kolumn do wizualizacji (None = wszystkie numeryczne)
         figsize : tuple
             Rozmiar wykresu
+        metadata : dict
+            Słownik z jednostkami miary dla kolumn (klucz: nazwa kolumny, wartość: jednostka)
         """
         if columns is None:
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
@@ -323,7 +325,11 @@ class DataAnalyzer:
             if idx < len(axes):
                 df[col].hist(bins=30, ax=axes[idx], edgecolor='black')
                 axes[idx].set_title(f'Rozkład {col}')
-                axes[idx].set_xlabel(col)
+                # Dodaj jednostkę do etykiety osi X jeśli metadata jest dostępne
+                if metadata and col in metadata:
+                    axes[idx].set_xlabel(f'{col} ({metadata[col]})')
+                else:
+                    axes[idx].set_xlabel(col)
                 axes[idx].set_ylabel('Częstość')
         
         # Ukryj puste subploty
@@ -514,6 +520,33 @@ class ModelTrainer:
         self.models = {}
         self.results = {}
     
+    def _check_class_imbalance(self, y_train, threshold: float = 0.8):
+        """
+        Pomocnicza metoda do sprawdzania niezbalansowania klas
+        
+        Parameters:
+        -----------
+        y_train : array-like
+            Zmienna docelowa treningowa
+        threshold : float
+            Próg niezbalansowania (domyślnie 0.8)
+            
+        Returns:
+        --------
+        tuple
+            (is_imbalanced: bool, class_counts: Counter, imbalance_ratio: float)
+        """
+        from collections import Counter
+        class_counts = Counter(y_train)
+        if len(class_counts) != 2:
+            return False, class_counts, None
+        
+        counts = list(class_counts.values())
+        imbalance_ratio = min(counts) / max(counts)
+        is_imbalanced = imbalance_ratio < threshold
+        
+        return is_imbalanced, class_counts, imbalance_ratio
+    
     def train_model(self, X_train, y_train, model_type: str, 
                    handle_imbalance: bool = True, **kwargs):
         """
@@ -539,18 +572,14 @@ class ModelTrainer:
         """
         # Sprawdź balans klas jeśli handle_imbalance=True
         if handle_imbalance:
-            from collections import Counter
-            class_counts = Counter(y_train)
-            if len(class_counts) == 2:
-                # Sprawdź czy klasy są niezbalansowane (różnica > 20%)
-                counts = list(class_counts.values())
-                imbalance_ratio = min(counts) / max(counts)
-                if imbalance_ratio < 0.8:  # Jeśli jedna klasa ma <80% drugiej
-                    print(f"Wykryto niezbalansowanie klas: {class_counts}")
+            is_imbalanced, class_counts, imbalance_ratio = self._check_class_imbalance(y_train)
+            
+            if is_imbalanced:
+                print(f"Wykryto niezbalansowanie klas: {class_counts}")
+                # Dodaj class_weight='balanced' jeśli nie jest już w kwargs
+                if 'class_weight' not in kwargs:
+                    kwargs['class_weight'] = 'balanced'
                     print("Stosowanie class_weight='balanced'")
-                    # Dodaj class_weight='balanced' jeśli nie jest już w kwargs
-                    if 'class_weight' not in kwargs:
-                        kwargs['class_weight'] = 'balanced'
         
         if model_type == 'logistic':
             model = LogisticRegression(random_state=42, max_iter=1000, **kwargs)
@@ -563,9 +592,8 @@ class ModelTrainer:
                 import xgboost as xgb
                 # XGBoost używa scale_pos_weight zamiast class_weight
                 if handle_imbalance and 'scale_pos_weight' not in kwargs:
-                    from collections import Counter
-                    class_counts = Counter(y_train)
-                    if len(class_counts) == 2:
+                    is_imbalanced, class_counts, _ = self._check_class_imbalance(y_train)
+                    if is_imbalanced and len(class_counts) == 2:
                         counts = list(class_counts.values())
                         scale_pos_weight = counts[0] / counts[1]  # negatywna / pozytywna
                         kwargs['scale_pos_weight'] = scale_pos_weight

@@ -59,9 +59,10 @@ class TestDataPreprocessor(unittest.TestCase):
         result = self.preprocessor.normalize_features(numeric_df, fit=True)
         
         # Sprawdź czy dane są znormalizowane (średnia ~0, std ~1)
+        # Używamy ddof=0 dla zgodności z StandardScaler (populacja zamiast próbki)
         for col in result.columns:
             self.assertAlmostEqual(result[col].mean(), 0, places=1)
-            self.assertAlmostEqual(result[col].std(), 1, places=1)
+            self.assertAlmostEqual(result[col].std(ddof=0), 1, places=1)
     
     def test_preprocess_pipeline(self):
         """Test pełnego pipeline preprocessingu"""
