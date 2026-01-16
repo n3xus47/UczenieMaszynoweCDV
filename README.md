@@ -1,1 +1,0 @@
-# Uczenie Maszynowe na CDV
