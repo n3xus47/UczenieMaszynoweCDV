@@ -54,14 +54,14 @@ Projekt wykorzystuje 6 głównych klas:
 3. **EDA** - Statystyki opisowe, korelacje, wizualizacje
 4. **Feature Engineering** - Tworzenie nowych cech, selekcja zmiennych
 5. **Przygotowanie zbiorów** - Podział train/test z stratyfikacją
-6. **Trenowanie modeli** - Logistic Regression, Random Forest, SVM, XGBoost
+6. **Trenowanie modeli** - Logistic Regression, Random Forest, SVM
 7. **Fine-tuning** - Optymalizacja hiperparametrów
 8. **Ewaluacja** - Metryki (Accuracy, Precision, Recall, F1, ROC-AUC), Confusion Matrix, ROC Curve
 
 ## Autorzy
 
-[Imię i nazwisko członków grupy]
+[Nikodem Boniecki, Adam Remfeld, Kacper Nowaczyk]
 
 ## Data
 
-2026
+01.2026
