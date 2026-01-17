@@ -25,15 +25,6 @@ class DataLoader:
         """
         Wczytuje dane z pliku CSV
         
-        Parameters:
-        -----------
-        path : str
-            Ścieżka do pliku CSV
-            
-        Returns:
-        --------
-        pd.DataFrame
-            Wczytane dane
         """
         try:
             self.data = pd.read_csv(path)
@@ -49,10 +40,6 @@ class DataLoader:
         """
         Zwraca podstawowe informacje o zbiorze danych
         
-        Returns:
-        --------
-        dict
-            Słownik z informacjami o danych
         """
         if self.data is None:
             return {"error": "Dane nie zostały wczytane"}
@@ -79,17 +66,6 @@ class DataPreprocessor:
         """
         Obsługuje brakujące wartości
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do przetworzenia
-        strategy : str
-            Strategia obsługi ('drop', 'mean', 'median', 'mode')
-            
-        Returns:
-        --------
-        pd.DataFrame
-            DataFrame po obsłudze brakujących wartości
         """
         df_processed = df.copy()
         
@@ -111,19 +87,6 @@ class DataPreprocessor:
         """
         Koduje zmienne kategoryczne
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do przetworzenia
-        columns : list
-            Lista kolumn do zakodowania (None = automatyczne wykrycie)
-        method : str
-            Metoda kodowania ('label' lub 'onehot')
-            
-        Returns:
-        --------
-        pd.DataFrame
-            DataFrame z zakodowanymi zmiennymi
         """
         df_encoded = df.copy()
         
@@ -148,19 +111,6 @@ class DataPreprocessor:
         """
         Normalizuje zmienne numeryczne
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do przetworzenia
-        columns : list
-            Lista kolumn do normalizacji (None = wszystkie numeryczne)
-        fit : bool
-            Czy dopasować scaler (True dla train, False dla test)
-            
-        Returns:
-        --------
-        pd.DataFrame
-            DataFrame z znormalizowanymi zmiennymi
         """
         df_normalized = df.copy()
         
@@ -185,25 +135,6 @@ class DataPreprocessor:
         """
         Pełny pipeline preprocessingu
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do przetworzenia
-        target_col : str
-            Nazwa kolumny docelowej (jeśli None, nie separuje)
-        handle_missing : str
-            Strategia obsługi brakujących wartości
-        encode_method : str
-            Metoda kodowania kategorycznych
-        normalize : bool
-            Czy normalizować zmienne
-        fit : bool
-            Czy dopasować transformatory (True dla train)
-            
-        Returns:
-        --------
-        tuple
-            (X, y) lub (df_processed, None) jeśli target_col=None
         """
         df_processed = df.copy()
         
@@ -241,15 +172,6 @@ class DataAnalyzer:
         """
         Zwraca statystyki opisowe
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do analizy
-            
-        Returns:
-        --------
-        pd.DataFrame
-            Statystyki opisowe
         """
         return df.describe()
     
@@ -257,20 +179,6 @@ class DataAnalyzer:
         """
         Analiza korelacji
         
-        Automatycznie obsługuje kolumny kategoryczne - koduje je jeśli target jest kategoryczny.
-        Jeśli target nie jest numeryczny, automatycznie go koduje.
-        
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do analizy (może zawierać kolumny kategoryczne)
-        target : str
-            Nazwa kolumny docelowej
-            
-        Returns:
-        --------
-        pd.DataFrame
-            Macierz korelacji lub korelacje z targetem
         """
         df_processed = df.copy()
         
@@ -299,16 +207,6 @@ class DataAnalyzer:
         """
         Wizualizuje rozkłady zmiennych numerycznych
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do wizualizacji
-        columns : list
-            Lista kolumn do wizualizacji (None = wszystkie numeryczne)
-        figsize : tuple
-            Rozmiar wykresu
-        metadata : dict
-            Słownik z jednostkami miary dla kolumn (klucz: nazwa kolumny, wartość: jednostka)
         """
         if columns is None:
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
@@ -343,12 +241,6 @@ class DataAnalyzer:
         """
         Wizualizuje macierz korelacji
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do wizualizacji
-        figsize : tuple
-            Rozmiar wykresu
         """
         numeric_df = df.select_dtypes(include=[np.number])
         corr_matrix = numeric_df.corr()
@@ -364,15 +256,6 @@ class DataAnalyzer:
         """
         Analiza balansu klas
         
-        Parameters:
-        -----------
-        y : pd.Series
-            Zmienna docelowa
-            
-        Returns:
-        --------
-        dict
-            Słownik z informacjami o balansie klas
         """
         value_counts = y.value_counts()
         percentages = y.value_counts(normalize=True) * 100
@@ -408,15 +291,6 @@ class FeatureEngineer:
         """
         Tworzy cechy interakcyjne
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do przetworzenia
-            
-        Returns:
-        --------
-        pd.DataFrame
-            DataFrame z nowymi cechami
         """
         df_new = df.copy()
         
@@ -452,15 +326,6 @@ class FeatureEngineer:
         """
         Tworzy cechy zagregowane
         
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame do przetworzenia
-            
-        Returns:
-        --------
-        pd.DataFrame
-            DataFrame z nowymi cechami
         """
         df_new = df.copy()
         
@@ -474,21 +339,6 @@ class FeatureEngineer:
         """
         Selekcja zmiennych
         
-        Parameters:
-        -----------
-        X : pd.DataFrame
-            Cechy
-        y : pd.Series
-            Zmienna docelowa
-        method : str
-            Metoda selekcji ('correlation', 'importance')
-        threshold : float
-            Próg dla selekcji
-            
-        Returns:
-        --------
-        tuple
-            (X_selected, selected_features)
         """
         if method == 'correlation':
             correlations = X.corrwith(y).abs()
@@ -524,17 +374,6 @@ class ModelTrainer:
         """
         Pomocnicza metoda do sprawdzania niezbalansowania klas
         
-        Parameters:
-        -----------
-        y_train : array-like
-            Zmienna docelowa treningowa
-        threshold : float
-            Próg niezbalansowania (domyślnie 0.8)
-            
-        Returns:
-        --------
-        tuple
-            (is_imbalanced: bool, class_counts: Counter, imbalance_ratio: float)
         """
         from collections import Counter
         class_counts = Counter(y_train)
@@ -552,23 +391,6 @@ class ModelTrainer:
         """
         Trenuje model
         
-        Parameters:
-        -----------
-        X_train : array-like
-            Cechy treningowe
-        y_train : array-like
-            Zmienna docelowa treningowa
-        model_type : str
-            Typ modelu ('logistic', 'random_forest', 'svm', 'xgboost')
-        handle_imbalance : bool
-            Czy automatycznie obsłużyć niezbalansowanie klas (class_weight='balanced')
-        **kwargs
-            Dodatkowe parametry modelu
-            
-        Returns:
-        --------
-        model
-            Wytrenowany model
         """
         # Sprawdź balans klas jeśli handle_imbalance=True
         if handle_imbalance:
@@ -613,20 +435,7 @@ class ModelTrainer:
     def evaluate_model(self, model, X_test, y_test) -> dict:
         """
         Ewaluuje model (obsługuje zarówno zwykłe modele jak i Pipeline)
-        
-        Parameters:
-        -----------
-        model : model lub Pipeline
-            Model do ewaluacji (może być Pipeline z sklearn)
-        X_test : array-like
-            Cechy testowe (jeśli model to Pipeline, dane powinny być przed skalowaniem)
-        y_test : array-like
-            Zmienna docelowa testowa
-            
-        Returns:
-        --------
-        dict
-            Słownik z metrykami
+       
         """
         # Pipeline automatycznie zastosuje skalowanie podczas predict
         y_pred = model.predict(X_test)
@@ -655,19 +464,6 @@ class ModelTrainer:
         """
         Porównuje wiele modeli
         
-        Parameters:
-        -----------
-        models : dict
-            Słownik modeli {nazwa: model}
-        X_test : array-like
-            Cechy testowe
-        y_test : array-like
-            Zmienna docelowa testowa
-            
-        Returns:
-        --------
-        pd.DataFrame
-            DataFrame z wynikami porównania
         """
         results = []
         
@@ -699,30 +495,6 @@ class HyperparameterTuner:
         skalowanie odbywa się osobno dla każdego foldu walidacji krzyżowej
         (uniknięcie data leakage).
         
-        Parameters:
-        -----------
-        model : model
-            Model do optymalizacji
-        param_grid : dict
-            Siatka parametrów (musi używać prefiksu 'model__' dla parametrów modelu)
-            Przykład: {'model__n_estimators': [100, 200], 'model__max_depth': [10, 20]}
-        X_train : array-like
-            Cechy treningowe (przed skalowaniem - surowe dane po feature engineering)
-        y_train : array-like
-            Zmienna docelowa treningowa
-        cv : int
-            Liczba foldów cross-validation
-        scoring : str
-            Metryka do optymalizacji (domyślnie 'f1' - lepsze dla niezbalansowanych klas)
-        n_jobs : int
-            Liczba równoległych zadań
-        handle_imbalance : bool
-            Czy automatycznie dodać class_weight='balanced' do modelu
-            
-        Returns:
-        --------
-        Pipeline
-            Najlepszy Pipeline (scaler + model)
         """
         # Sprawdź balans klas i dodaj class_weight jeśli potrzebne
         if handle_imbalance:
@@ -773,30 +545,6 @@ class HyperparameterTuner:
         skalowanie odbywa się osobno dla każdego foldu walidacji krzyżowej
         (uniknięcie data leakage).
         
-        Parameters:
-        -----------
-        model : model
-            Model do optymalizacji
-        param_distributions : dict
-            Rozkłady parametrów (musi używać prefiksu 'model__' dla parametrów modelu)
-            Przykład: {'model__n_estimators': [100, 200], 'model__max_depth': [10, 20]}
-        X_train : array-like
-            Cechy treningowe (przed skalowaniem - surowe dane po feature engineering)
-        y_train : array-like
-            Zmienna docelowa treningowa
-        n_iter : int
-            Liczba iteracji
-        cv : int
-            Liczba foldów cross-validation
-        scoring : str
-            Metryka do optymalizacji
-        n_jobs : int
-            Liczba równoległych zadań
-            
-        Returns:
-        --------
-        Pipeline
-            Najlepszy Pipeline (scaler + model)
         """
         # Tworzenie Pipeline ze StandardScaler i modelem
         pipeline = Pipeline([
