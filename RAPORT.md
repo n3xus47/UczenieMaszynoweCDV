@@ -1,14 +1,10 @@
-# Raport - Projekt ML: Przewidywanie Intencji Zakupowych Online Shoppers
-
-## 1. Wprowadzenie
+# Raport - Przewidywanie Intencji Zakupowych
 
 ### Opis problemu
 Projekt dotyczy klasyfikacji binarnej przewidującej, czy użytkownik dokona zakupu w sklepie internetowym na podstawie danych o jego zachowaniu na stronie.
 
 ### Cel projektu
-Celem projektu jest stworzenie modelu uczenia maszynowego, który na podstawie danych o zachowaniu użytkownika (liczba odwiedzonych stron, czas spędzony na stronie, wskaźniki odrzuceń itp.) przewidzi, czy użytkownik dokona zakupu (kolumna `Revenue`).
-
-## 2. Źródło Danych
+Na podstawie danych o zachowaniu użytkownika (liczba odwiedzonych stron, czas spędzony na stronie, wskaźniki odrzuceń itp.) przewidzi, czy użytkownik dokona zakupu (kolumna `Revenue`).
 
 ### Opis zbioru danych
 Zbiór danych `online_shoppers_intention.csv` zawiera informacje o sesjach użytkowników w sklepie internetowym.
@@ -38,12 +34,13 @@ Zbiór danych `online_shoppers_intention.csv` zawiera informacje o sesjach użyt
 #### Zmienna docelowa:
 - `Revenue` - czy użytkownik dokonał zakupu (TRUE/FALSE)
 
-## 3. Preprocessing
+## Preprocessing
 
 ### Wykryte problemy
-- **Brakujące wartości**: [Wpisz wyniki analizy - czy były brakujące wartości?]
+- **Brakujące wartości**: [W naszym przypadku nie znaleźliśmy żadnych brakujących wartości]
 - **Typy danych**: Wszystkie zmienne kategoryczne wymagały kodowania
-- **Niezbalansowanie klas**: [Wpisz procentowy rozkład klas]
+- **Niezbalansowanie klas**: [Procentowy rozkład: False    84.525547
+                                                  True     15.474453]
 
 ### Zastosowane transformacje
 
